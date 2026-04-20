@@ -1,0 +1,21 @@
+name: Run Tests on Windows
+
+on:
+  push:
+    branches: [ diploma-testing ]
+  pull_request:
+    branches: [ diploma-testing ]
+
+jobs:
+  hello_world:
+    runs-on: windows-latest  # GitHub даст виртуальную машину с Windows
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🎉 Запуск теста
+        run: |
+          Write-Host "🎉 Привет от Гузалии!"
+          Get-Location
+          echo "✅ Тест прошёл успешно!"
