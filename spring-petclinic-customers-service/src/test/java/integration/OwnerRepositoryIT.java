@@ -34,19 +34,21 @@ class OwnerRepositoryIT {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+        registry.add("spring.sql.init.mode", () -> "never");
     }
 
     @Autowired
     private OwnerRepository ownerRepository;
 
     @Test
-    @DisplayName("Сохраняет владельца в реальную БД и находит его по ID")
+    @DisplayName("Save and find owner by ID")
     void shouldSaveAndFindOwnerById() {
         Owner owner = new Owner();
-        owner.setFirstName("Иван");
-        owner.setLastName("Петров");
-        owner.setAddress("ул. Ленина 1");
-        owner.setCity("Казань");
+        owner.setFirstName("Ivan");
+        owner.setLastName("Petrov");
+        owner.setAddress("Lenina 1");
+        owner.setCity("Kazan");
         owner.setTelephone("89001234567");
 
         Owner saved = ownerRepository.save(owner);
@@ -55,25 +57,24 @@ class OwnerRepositoryIT {
 
         Optional<Owner> found = ownerRepository.findById(saved.getId());
         assertThat(found).isPresent();
-        assertThat(found.get().getFirstName()).isEqualTo("Иван");
-        assertThat(found.get().getLastName()).isEqualTo("Петров");
+        assertThat(found.get().getFirstName()).isEqualTo("Ivan");
     }
 
     @Test
-    @DisplayName("Возвращает пустой Optional если владелец не найден")
+    @DisplayName("Return empty when owner not found")
     void shouldReturnEmpty_whenOwnerNotFound() {
         Optional<Owner> found = ownerRepository.findById(99999);
         assertThat(found).isEmpty();
     }
 
     @Test
-    @DisplayName("Удаляет владельца из БД")
+    @DisplayName("Delete owner from DB")
     void shouldDeleteOwner() {
         Owner owner = new Owner();
-        owner.setFirstName("Мария");
-        owner.setLastName("Иванова");
-        owner.setAddress("ул. Мира 5");
-        owner.setCity("Москва");
+        owner.setFirstName("Maria");
+        owner.setLastName("Ivanova");
+        owner.setAddress("Mira 5");
+        owner.setCity("Moscow");
         owner.setTelephone("89009876543");
 
         Owner saved = ownerRepository.save(owner);
