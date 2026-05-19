@@ -1,4 +1,4 @@
-﻿package org.springframework.samples.petclinic.customers.e2e;
+package org.springframework.samples.petclinic.customers.e2e;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
