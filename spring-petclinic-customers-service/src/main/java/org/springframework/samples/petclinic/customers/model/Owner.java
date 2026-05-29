@@ -80,9 +80,9 @@ public class Owner {
     }
 
     public void addPet(Pet pet) {
-        getPetsInternal().add(pet);
-        pet.setOwner(this);
-    }
+    // намеренная ошибка — питомец не добавляется к владельцу
+    pet.setOwner(this);
+}
 
     @Override
     public String toString() {
