@@ -2,101 +2,131 @@ package org.springframework.samples.petclinic.customers.contract;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.web.client.RestClient;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.*;
 
 class VisitsClientContractTest {
 
-    private WireMockServer wireMockServer;
+    private WireMockServer wireMock;
+    private RestClient client;
 
     @BeforeEach
     void setUp() {
-        wireMockServer = new WireMockServer(
+        wireMock = new WireMockServer(
             WireMockConfiguration.wireMockConfig().dynamicPort()
         );
-        wireMockServer.start();
+        wireMock.start();
+        client = RestClient.builder()
+            .baseUrl("http://localhost:" + wireMock.port())
+            .build();
     }
 
     @AfterEach
-    void tearDown() {
-        wireMockServer.stop();
-    }
+    void tearDown() { wireMock.stop(); }
 
-    @Test
-    @DisplayName("visits-service возвращает список визитов для питомца")
-    void shouldReturnVisitsForPet() {
-        wireMockServer.stubFor(get(urlPathMatching("/pets/[0-9]+/visits"))
+    private void stubVisits(String itemsJson) {
+        wireMock.stubFor(get(urlPathMatching("/pets/[0-9]+/visits"))
             .willReturn(aResponse()
                 .withStatus(200)
                 .withHeader("Content-Type", "application/json")
-                .withBody("""
-                    {
-                        "items": [
-                            {"id": 1, "date": "2024-01-15", "description": "Ежегодный осмотр"},
-                            {"id": 2, "date": "2024-06-10", "description": "Вакцинация"}
-                        ]
-                    }
-                """)));
-
-        RestClient client = RestClient.builder()
-            .baseUrl("http://localhost:" + wireMockServer.port())
-            .build();
-
-        String response = client.get()
-            .uri("/pets/1/visits")
-            .retrieve()
-            .body(String.class);
-
-        assertThat(response).contains("Ежегодный осмотр");
-        assertThat(response).contains("Вакцинация");
-
-        wireMockServer.verify(getRequestedFor(urlPathMatching("/pets/[0-9]+/visits")));
+                .withBody("{\"items\":" + itemsJson + "}")));
     }
 
-    @Test
-    @DisplayName("visits-service возвращает 404 если питомец не существует")
-    void shouldReturn404_whenPetNotFound() {
-        wireMockServer.stubFor(get(urlPathMatching("/pets/99999/visits"))
-            .willReturn(aResponse()
-                .withStatus(404)));
-
-        RestClient client = RestClient.builder()
-            .baseUrl("http://localhost:" + wireMockServer.port())
-            .build();
-
-        assertThatThrownBy(() ->
-            client.get()
-                .uri("/pets/99999/visits")
-                .retrieve()
-                .body(String.class)
-        ).isInstanceOf(Exception.class);
+    private String getVisits(int petId) {
+        return client.get().uri("/pets/" + petId + "/visits")
+            .retrieve().body(String.class);
     }
 
-    @Test
-    @DisplayName("visits-service возвращает пустой список если визитов нет")
-    void shouldReturnEmptyList_whenNoVisits() {
-        wireMockServer.stubFor(get(urlPathMatching("/pets/[0-9]+/visits"))
-            .willReturn(aResponse()
-                .withStatus(200)
-                .withHeader("Content-Type", "application/json")
-                .withBody("{\"items\": []}")));
+    @Nested
+    @DisplayName("1. Контракт формата ответа")
+    class ResponseFormatContract {
 
-        RestClient client = RestClient.builder()
-            .baseUrl("http://localhost:" + wireMockServer.port())
-            .build();
+        @Test
+        @DisplayName("1.1 Ответ содержит поле items")
+        void responseContainsItemsField() {
+            stubVisits("[{\"id\":1,\"date\":\"2024-01-01\",\"description\":\"osmotr\"}]");
+            assertThat(getVisits(1)).contains("\"items\"");
+        }
 
-        String response = client.get()
-            .uri("/pets/1/visits")
-            .retrieve()
-            .body(String.class);
+        @Test
+        @DisplayName("1.2 Поле date присутствует")
+        void visitHasDateField() {
+            stubVisits("[{\"id\":1,\"date\":\"2024-06-15\",\"description\":\"vakcinaciya\"}]");
+            assertThat(getVisits(1)).contains("\"date\"");
+        }
 
-        assertThat(response).contains("items");
-        assertThat(response).contains("[]");
+        @Test
+        @DisplayName("1.3 Поле description присутствует")
+        void visitHasDescriptionField() {
+            stubVisits("[{\"id\":1,\"date\":\"2024-06-15\",\"description\":\"osmotr\"}]");
+            assertThat(getVisits(1)).contains("\"description\"");
+        }
+
+        @Test
+        @DisplayName("1.4 Поле id присутствует")
+        void visitHasIdField() {
+            stubVisits("[{\"id\":42,\"date\":\"2024-06-15\",\"description\":\"osmotr\"}]");
+            assertThat(getVisits(1)).contains("\"id\"");
+        }
+
+        @Test
+        @DisplayName("1.5 Пустой список валидный ответ")
+        void emptyVisitsList() {
+            stubVisits("[]");
+            String body = getVisits(1);
+            assertThat(body).contains("\"items\"");
+            assertThat(body).contains("[]");
+        }
+    }
+
+    @Nested
+    @DisplayName("2. Корректность данных")
+    class DataCorrectnessTests {
+
+        @Test
+        @DisplayName("2.1 Два визита возвращаются оба")
+        void twoVisits_bothPresent() {
+            stubVisits("[{\"id\":1,\"date\":\"2024-01-15\",\"description\":\"osmotr\"},"
+                + "{\"id\":2,\"date\":\"2024-06-10\",\"description\":\"vaccine\"}]");
+            String body = getVisits(1);
+            assertThat(body).contains("osmotr").contains("vaccine");
+        }
+
+        @Test
+        @DisplayName("2.2 Описание передается без искажений")
+        void visitDescription_correct() {
+            stubVisits("[{\"id\":1,\"date\":\"2024-01-01\",\"description\":\"annual checkup\"}]");
+            assertThat(getVisits(1)).contains("annual checkup");
+        }
+
+        @Test
+        @DisplayName("2.3 Запрос к WireMock выполнен")
+        void request_isSent() {
+            stubVisits("[]");
+            getVisits(5);
+            wireMock.verify(getRequestedFor(urlPathMatching("/pets/[0-9]+/visits")));
+        }
+    }
+
+    @Nested
+    @DisplayName("3. Обработка ошибок")
+    class ErrorHandlingTests {
+
+        @Test
+        @DisplayName("3.1 503 от visits-service бросает исключение")
+        void serviceUnavailable_throws() {
+            wireMock.stubFor(get(urlPathMatching("/pets/[0-9]+/visits"))
+                .willReturn(aResponse().withStatus(503)));
+            assertThatThrownBy(() -> getVisits(1)).isInstanceOf(Exception.class);
+        }
+
+        @Test
+        @DisplayName("3.2 Успешный запрос без исключений")
+        void successfulRequest_noException() {
+            stubVisits("[]");
+            assertThatNoException().isThrownBy(() -> getVisits(1));
+        }
     }
 }
