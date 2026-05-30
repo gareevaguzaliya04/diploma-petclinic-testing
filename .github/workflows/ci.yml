@@ -166,6 +166,13 @@ jobs:
           cp -r spring-petclinic-customers-service/target/site/jacoco/* \
             gh-pages-content/coverage/
 
+      - name: Generate dynamic dashboard
+        run: |
+          python3 generate-dashboard.py
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          GITHUB_REF_NAME:   ${{ github.ref_name }}
+
       - name: Checkout current gh-pages
         run: |
           git fetch origin gh-pages || true
@@ -173,10 +180,10 @@ jobs:
 
       - name: Copy new reports preserving existing files
         run: |
-          cp -r gh-pages-content/allure/* allure/ 2>/dev/null || \
-            mkdir -p allure && cp -r gh-pages-content/allure/* allure/
-          cp -r gh-pages-content/coverage/* coverage/ 2>/dev/null || \
-            mkdir -p coverage && cp -r gh-pages-content/coverage/* coverage/
+          mkdir -p allure coverage
+          cp -r gh-pages-content/allure/*    allure/
+          cp -r gh-pages-content/coverage/*  coverage/
+          cp    gh-pages-content/index.html  index.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
