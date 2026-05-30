@@ -10,11 +10,15 @@ jobs:
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       # ── 1. Checkout репозитория ───────────────────────────
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # ── 2. Java 17 ───────────────────────────────────────
       - name: Set up Java 17
@@ -72,75 +76,58 @@ jobs:
              done'
           echo "Vets Service is UP"
 
-      # ── 6. Загрузить историю Allure из gh-pages ──────────
-      - name: Get Allure history from gh-pages
-        uses: actions/checkout@v4
-        if: always()
-        continue-on-error: true
-        with:
-          ref: gh-pages
-          path: gh-pages
-
-      # ── 7. Запуск E2E тестов ──────────────────────────────
+      # ── 6. Запуск E2E тестов ──────────────────────────────
       - name: Run E2E tests
-        if: always()
         run: |
+          mkdir -p petclinic-e2e-tests/target/allure-results
           mvn test \
             --no-transfer-progress \
             -f petclinic-e2e-tests/pom.xml \
             -Dbase.url=http://localhost:8080
         continue-on-error: true
 
-      # ── 8. Копировать историю в allure-results ────────────
-      - name: Copy Allure history
+      # ── 7. Загрузить историю Allure из gh-pages ──────────
+      - name: Get Allure history from gh-pages
         if: always()
         run: |
-          if [ -d "gh-pages" ]; then
-            mkdir -p petclinic-e2e-tests/target/allure-results/history
-            # берём историю из последнего развёрнутого отчёта
-            if [ -d "gh-pages/history" ]; then
-              cp -r gh-pages/history/. petclinic-e2e-tests/target/allure-results/history/
-              echo "Allure history copied."
-            else
-              echo "No previous history found — first run."
-            fi
-          fi
+          git fetch origin gh-pages || true
+          git checkout origin/gh-pages -- allure-e2e/history || true
+          mkdir -p petclinic-e2e-tests/target/allure-results/history
+          cp -r allure-e2e/history/. petclinic-e2e-tests/target/allure-results/history/ 2>/dev/null || true
+
+      # ── 8. Установка Allure CLI ───────────────────────────
+      - name: Install Allure CLI
+        if: always()
+        run: npm install -g allure-commandline@2.25.0
 
       # ── 9. Генерация Allure отчёта ────────────────────────
       - name: Generate Allure report
         if: always()
-        uses: simple-elf/allure-report-action@v1.9
-        with:
-          allure_results:  petclinic-e2e-tests/target/allure-results
-          allure_history:  allure-history
-          keep_reports:    20
-          gh_pages:        gh-pages
+        run: |
+          mkdir -p petclinic-e2e-tests/target/allure-results
+          allure generate petclinic-e2e-tests/target/allure-results \
+            --output allure-e2e-report \
+            --clean
 
       # ── 10. Публикация на GitHub Pages ───────────────────
-      - name: Publish Allure report to GitHub Pages
+      - name: Deploy E2E Allure report to GitHub Pages
         if: always()
         uses: peaceiris/actions-gh-pages@v3
         with:
-          github_token:   ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
-          publish_dir:    allure-history
-          keep_files:     true
+          publish_dir: allure-e2e-report
+          destination_dir: allure-e2e
+          keep_files: true
+          commit_message: "ci: update E2E Allure report"
 
       # ── 11. Артефакты (результаты + отчёт) ───────────────
       - name: Upload Allure results as artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name:           allure-results-${{ github.run_number }}
-          path:           petclinic-e2e-tests/target/allure-results
-          retention-days: 14
-
-      - name: Upload JaCoCo report as artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name:           jacoco-report-${{ github.run_number }}
-          path:           petclinic-e2e-tests/target/site/jacoco
+          name: allure-results-e2e-${{ github.run_number }}
+          path: petclinic-e2e-tests/target/allure-results
           retention-days: 14
 
       # ── 12. Логи контейнеров при падении ─────────────────
