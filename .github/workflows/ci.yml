@@ -53,9 +53,11 @@ jobs:
           TESTCONTAINERS_RYUK_DISABLED: true
       - name: Upload test results
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-results
+          if-no-files-found: warn
           path: |
             **/target/surefire-reports/*.xml
             **/target/allure-results/**
@@ -113,18 +115,21 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
 
       - name: Download allure-results from unit-tests
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: unit-test-results
           path: allure-results/unit
 
       - name: Download allure-results from integration-tests
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: integration-test-results
           path: allure-results/integration
 
       - name: Download allure-results from contract-tests
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: contract-test-results
