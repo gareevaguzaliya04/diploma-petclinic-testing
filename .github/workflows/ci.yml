@@ -28,7 +28,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-results
-          path: '**/target/surefire-reports/*.xml'
+          path: |
+            **/target/surefire-reports/*.xml
+            **/target/allure-results/**
 
   integration-tests:
     name: Integration Tests (Testcontainers)
@@ -51,10 +53,14 @@ jobs:
           TESTCONTAINERS_RYUK_DISABLED: true
       - name: Upload test results
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-results
-          path: '**/target/surefire-reports/*.xml'
+          if-no-files-found: warn
+          path: |
+            **/target/surefire-reports/*.xml
+            **/target/allure-results/**
 
   contract-tests:
     name: Contract Tests (WireMock)
@@ -78,4 +84,132 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: contract-test-results
-          path: '**/target/surefire-reports/*.xml'
+          path: |
+            **/target/surefire-reports/*.xml
+            **/target/allure-results/**
+
+  publish-reports:
+    name: "Publish Allure + JaCoCo to GitHub Pages"
+    needs: [unit-tests, integration-tests, contract-tests]
+    runs-on: ubuntu-latest
+    if: always()
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Cache Maven
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+
+      - name: Download allure-results from unit-tests
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: unit-test-results
+          path: allure-results/unit
+
+      - name: Download allure-results from integration-tests
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: integration-test-results
+          path: allure-results/integration
+
+      - name: Download allure-results from contract-tests
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: contract-test-results
+          path: allure-results/contract
+
+      - name: Run all tests with JaCoCo
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: true
+        run: |
+          mvn test jacoco:report \
+            -pl spring-petclinic-customers-service \
+            -Dtest="**/unit/**,**/integration/**,**/contract/**" \
+            -Dsurefire.forkCount=1 \
+            --no-transfer-progress
+
+      - name: Install Allure CLI
+        run: |
+          npm install -g allure-commandline@2.25.0
+
+      - name: Get Allure history from gh-pages
+        run: |
+          git fetch origin gh-pages || true
+          git checkout origin/gh-pages -- allure/history || true
+          mkdir -p allure-results/history
+          cp -r allure/history/* allure-results/history/ 2>/dev/null || true
+
+      - name: Generate Allure report
+        run: |
+          allure generate allure-results \
+            --output allure-report \
+            --clean
+
+      - name: Prepare GitHub Pages content
+        run: |
+          mkdir -p gh-pages-content/allure
+          mkdir -p gh-pages-content/coverage
+
+          cp -r allure-report/* gh-pages-content/allure/
+          cp -r spring-petclinic-customers-service/target/site/jacoco/* \
+            gh-pages-content/coverage/
+
+      - name: Generate dynamic dashboard
+        run: |
+          python3 generate-dashboard.py
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          GITHUB_REF_NAME:   ${{ github.ref_name }}
+
+      - name: Checkout current gh-pages
+        run: |
+          git fetch origin gh-pages || true
+          git checkout origin/gh-pages -- . 2>/dev/null || true
+
+      - name: Copy new reports preserving existing files
+        run: |
+          mkdir -p allure coverage
+          cp -r gh-pages-content/allure/*    allure/
+          cp -r gh-pages-content/coverage/*  coverage/
+          cp    gh-pages-content/index.html  index.html
+
+      - name: Update docs/index.html in source branch
+        run: |
+          git checkout ${{ github.ref_name }}
+          cp gh-pages-content/index.html docs/index.html
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/index.html
+          if git diff --cached --quiet; then
+            echo "docs/index.html not changed, skipping commit"
+          else
+            git commit -m "ci: update dashboard [skip ci]"
+            git push origin ${{ github.ref_name }}
+          fi
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          publish_branch: gh-pages
+          keep_files: true
+          commit_message: |
+            ci: update Allure report and JaCoCo coverage

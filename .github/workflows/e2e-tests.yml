@@ -1,0 +1,136 @@
+name: E2E Tests + Allure Report
+
+on:
+  push:
+    branches: [ main, "1" ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      # ── 1. Checkout репозитория ───────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── 2. Java 17 ───────────────────────────────────────
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # ── 3. Сборка сервисов (без тестов) ──────────────────
+      - name: Build microservices (skip tests)
+        run: mvn package -DskipTests --no-transfer-progress
+
+      # ── 4. Запуск через Docker Compose ───────────────────
+      - name: Start services with Docker Compose
+        run: docker compose up -d --build
+        env:
+          COMPOSE_HTTP_TIMEOUT: 120
+
+      # ── 5. Ожидание готовности всех сервисов ─────────────
+      - name: Wait for API Gateway
+        run: |
+          echo "Waiting for API Gateway (port 8080)..."
+          timeout 240 bash -c \
+            'until curl -sf http://localhost:8080/actuator/health | grep -q "UP"; do
+               echo "  not ready, retrying in 5s..."
+               sleep 5
+             done'
+          echo "API Gateway is UP"
+
+      - name: Wait for Customers Service
+        run: |
+          echo "Waiting for Customers Service (port 8081)..."
+          timeout 120 bash -c \
+            'until curl -sf http://localhost:8081/actuator/health | grep -q "UP"; do
+               sleep 5
+             done'
+          echo "Customers Service is UP"
+
+      - name: Wait for Visits Service
+        run: |
+          echo "Waiting for Visits Service (port 8082)..."
+          timeout 120 bash -c \
+            'until curl -sf http://localhost:8082/actuator/health | grep -q "UP"; do
+               sleep 5
+             done'
+          echo "Visits Service is UP"
+
+      - name: Wait for Vets Service
+        run: |
+          echo "Waiting for Vets Service (port 8083)..."
+          timeout 120 bash -c \
+            'until curl -sf http://localhost:8083/actuator/health | grep -q "UP"; do
+               sleep 5
+             done'
+          echo "Vets Service is UP"
+
+      # ── 6. Запуск E2E тестов ──────────────────────────────
+      - name: Run E2E tests
+        run: |
+          mkdir -p petclinic-e2e-tests/target/allure-results
+          mvn test \
+            --no-transfer-progress \
+            -f petclinic-e2e-tests/pom.xml \
+            -Dbase.url=http://localhost:8080
+        continue-on-error: true
+
+      # ── 7. Загрузить историю Allure из gh-pages ──────────
+      - name: Get Allure history from gh-pages
+        if: always()
+        run: |
+          git fetch origin gh-pages || true
+          git checkout origin/gh-pages -- allure-e2e/history || true
+          mkdir -p petclinic-e2e-tests/target/allure-results/history
+          cp -r allure-e2e/history/. petclinic-e2e-tests/target/allure-results/history/ 2>/dev/null || true
+
+      # ── 8. Установка Allure CLI ───────────────────────────
+      - name: Install Allure CLI
+        if: always()
+        run: npm install -g allure-commandline@2.25.0
+
+      # ── 9. Генерация Allure отчёта ────────────────────────
+      - name: Generate Allure report
+        if: always()
+        run: |
+          mkdir -p petclinic-e2e-tests/target/allure-results
+          allure generate petclinic-e2e-tests/target/allure-results \
+            --output allure-e2e-report \
+            --clean
+
+      # ── 10. Публикация на GitHub Pages ───────────────────
+      - name: Deploy E2E Allure report to GitHub Pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-e2e-report
+          destination_dir: allure-e2e
+          keep_files: true
+          commit_message: "ci: update E2E Allure report"
+
+      # ── 11. Артефакты (результаты + отчёт) ───────────────
+      - name: Upload Allure results as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-e2e-${{ github.run_number }}
+          path: petclinic-e2e-tests/target/allure-results
+          retention-days: 14
+
+      # ── 12. Логи контейнеров при падении ─────────────────
+      - name: Dump Docker container logs on failure
+        if: failure()
+        run: docker compose logs --tail=100

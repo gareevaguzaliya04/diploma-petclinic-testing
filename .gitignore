@@ -21,3 +21,9 @@ target/
 generated/
 
 **/.DS_Store
+
+# Allure & JaCoCo generated reports (генерируются локально и в CI)
+allure-results/
+**/allure-results/
+allure-report/
+**/allure-report/

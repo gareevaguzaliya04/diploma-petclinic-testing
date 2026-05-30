@@ -1,5 +1,9 @@
 package org.springframework.samples.petclinic.customers.integration;
 
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
+import io.qameta.allure.Step;
+import io.qameta.allure.Story;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -12,13 +16,16 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.springframework.samples.petclinic.customers.model.*;
-import java.util.Date;
+import java.util.Optional;
 import static org.assertj.core.api.Assertions.*;
 
 /**
  * Расширенные интеграционные тесты — массовые операции и граничные случаи.
  * Уровень: INTEGRATION (требует Docker — PostgreSQL 15 через Testcontainers)
  */
+@Epic("Стратегия тестирования микросервисов")
+@Feature("Интеграционное тестирование — Testcontainers + PostgreSQL 15")
+@Story("Кастомные JPQL запросы в PostgreSQL")
 @SpringBootTest
 @Testcontainers
 @ActiveProfiles("test")
@@ -53,6 +60,28 @@ class PetRepositoryIT {
         return o;
     }
 
+    // ── @Step-методы для структурирования шагов в Allure-отчёте ──────────────
+
+    @Step("Сохранить владельца через OwnerRepository")
+    private Owner saveOwner(Owner owner) {
+        return ownerRepository.save(owner);
+    }
+
+    @Step("Найти по ID={0} — ожидаем Optional.isPresent()")
+    private Optional<Owner> findOwnerById(Integer id) {
+        return ownerRepository.findById(id);
+    }
+
+    @Step("Удалить владельца по ID={0}")
+    private void deleteOwnerById(Integer id) {
+        ownerRepository.deleteById(id);
+    }
+
+    @Step("Проверить city={0} у найденного владельца")
+    private void assertOwnerCity(Owner owner, String expectedCity) {
+        assertThat(owner.getCity()).isEqualTo(expectedCity);
+    }
+
     // ──────────────────────────────────────────────────────
     // Группа 1: Массовые операции
     // ──────────────────────────────────────────────────────
@@ -64,7 +93,7 @@ class PetRepositoryIT {
         @DisplayName("1.1 Десять владельцев сохраняются успешно")
         void tenOwners_savedSuccessfully() {
             for (int i = 1; i <= 10; i++) {
-                Owner o = ownerRepository.save(buildOwner("Имя" + i, "Фамилия" + i));
+                Owner o = saveOwner(buildOwner("Имя" + i, "Фамилия" + i));
                 assertThat(o.getId()).isNotNull();
             }
         }
@@ -74,7 +103,7 @@ class PetRepositoryIT {
         void fiveOwners_uniqueIds() {
             var ids = new java.util.HashSet<Integer>();
             for (int i = 1; i <= 5; i++) {
-                Owner o = ownerRepository.save(buildOwner("Test" + i, "User" + i));
+                Owner o = saveOwner(buildOwner("Test" + i, "User" + i));
                 ids.add(o.getId());
             }
             assertThat(ids).hasSize(5);
@@ -83,17 +112,17 @@ class PetRepositoryIT {
         @Test
         @DisplayName("1.3 Сохранение и удаление трёх владельцев")
         void saveAndDeleteThree() {
-            Owner o1 = ownerRepository.save(buildOwner("А", "Один"));
-            Owner o2 = ownerRepository.save(buildOwner("Б", "Два"));
-            Owner o3 = ownerRepository.save(buildOwner("В", "Три"));
+            Owner o1 = saveOwner(buildOwner("А", "Один"));
+            Owner o2 = saveOwner(buildOwner("Б", "Два"));
+            Owner o3 = saveOwner(buildOwner("В", "Три"));
 
-            ownerRepository.deleteById(o1.getId());
-            ownerRepository.deleteById(o2.getId());
-            ownerRepository.deleteById(o3.getId());
+            deleteOwnerById(o1.getId());
+            deleteOwnerById(o2.getId());
+            deleteOwnerById(o3.getId());
 
-            assertThat(ownerRepository.findById(o1.getId())).isEmpty();
-            assertThat(ownerRepository.findById(o2.getId())).isEmpty();
-            assertThat(ownerRepository.findById(o3.getId())).isEmpty();
+            assertThat(findOwnerById(o1.getId())).isEmpty();
+            assertThat(findOwnerById(o2.getId())).isEmpty();
+            assertThat(findOwnerById(o3.getId())).isEmpty();
         }
     }
 
@@ -107,8 +136,8 @@ class PetRepositoryIT {
         @Test
         @DisplayName("2.1 Транзакция: сохранение откатывается при ошибке")
         void idIsAutoIncrementedCorrectly() {
-            Owner o1 = ownerRepository.save(buildOwner("First", "Save"));
-            Owner o2 = ownerRepository.save(buildOwner("Second", "Save"));
+            Owner o1 = saveOwner(buildOwner("First", "Save"));
+            Owner o2 = saveOwner(buildOwner("Second", "Save"));
             // ID у второго владельца больше чем у первого
             assertThat(o2.getId()).isGreaterThan(o1.getId());
         }
@@ -118,8 +147,8 @@ class PetRepositoryIT {
         void addressWithSpecialChars() {
             Owner o = buildOwner("Тест", "Адрес");
             o.setAddress("ул. Ленина, д. 12/3, кв. 45-А");
-            Owner saved = ownerRepository.save(o);
-            assertThat(ownerRepository.findById(saved.getId())
+            Owner saved = saveOwner(o);
+            assertThat(findOwnerById(saved.getId())
                 .get().getAddress()).contains("12/3");
         }
 
@@ -128,9 +157,8 @@ class PetRepositoryIT {
         void cityWithHyphen() {
             Owner o = buildOwner("Тест", "Город");
             o.setCity("Санкт-Петербург");
-            Owner saved = ownerRepository.save(o);
-            assertThat(ownerRepository.findById(saved.getId())
-                .get().getCity()).isEqualTo("Санкт-Петербург");
+            Owner saved = saveOwner(o);
+            assertOwnerCity(findOwnerById(saved.getId()).get(), "Санкт-Петербург");
         }
 
         @ParameterizedTest
@@ -139,9 +167,8 @@ class PetRepositoryIT {
         void variousCities_persistedInPostgres(String city) {
             Owner o = buildOwner("Город", "Тест");
             o.setCity(city);
-            Owner saved = ownerRepository.save(o);
-            assertThat(ownerRepository.findById(saved.getId())
-                .get().getCity()).isEqualTo(city);
+            Owner saved = saveOwner(o);
+            assertOwnerCity(findOwnerById(saved.getId()).get(), city);
         }
     }
 
@@ -155,38 +182,37 @@ class PetRepositoryIT {
         @Test
         @DisplayName("3.1 Создать → найти → обновить → найти снова")
         void createFindUpdateFind() {
-            Owner saved = ownerRepository.save(buildOwner("Начальное", "Имя"));
-            assertThat(ownerRepository.findById(saved.getId())).isPresent();
+            Owner saved = saveOwner(buildOwner("Начальное", "Имя"));
+            assertThat(findOwnerById(saved.getId())).isPresent();
 
             saved.setFirstName("Обновлённое");
-            ownerRepository.save(saved);
+            saveOwner(saved);
 
-            assertThat(ownerRepository.findById(saved.getId())
+            assertThat(findOwnerById(saved.getId())
                 .get().getFirstName()).isEqualTo("Обновлённое");
         }
 
         @Test
         @DisplayName("3.2 Создать → удалить → создать снова с другим ID")
         void createDeleteCreate() {
-            Owner first  = ownerRepository.save(buildOwner("Первый", "Раз"));
+            Owner first  = saveOwner(buildOwner("Первый", "Раз"));
             Integer firstId = first.getId();
-            ownerRepository.deleteById(firstId);
+            deleteOwnerById(firstId);
 
-            Owner second = ownerRepository.save(buildOwner("Второй", "Раз"));
+            Owner second = saveOwner(buildOwner("Второй", "Раз"));
             assertThat(second.getId()).isNotEqualTo(firstId);
         }
 
         @Test
         @DisplayName("3.3 Двойное обновление — последнее значение побеждает")
         void doubleUpdate_lastValueWins() {
-            Owner o = ownerRepository.save(buildOwner("Первое", "Значение"));
+            Owner o = saveOwner(buildOwner("Первое", "Значение"));
             o.setCity("Уфа");
-            ownerRepository.save(o);
+            saveOwner(o);
             o.setCity("Казань");
-            ownerRepository.save(o);
+            saveOwner(o);
 
-            assertThat(ownerRepository.findById(o.getId())
-                .get().getCity()).isEqualTo("Казань");
+            assertOwnerCity(findOwnerById(o.getId()).get(), "Казань");
         }
     }
 }

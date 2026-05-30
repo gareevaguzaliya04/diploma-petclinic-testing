@@ -2,6 +2,7 @@ package org.springframework.samples.petclinic.customers.contract;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import io.qameta.allure.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -14,6 +15,9 @@ import static org.assertj.core.api.Assertions.*;
  * Уровень: CONTRACT
  * Количество тестов: 8
  */
+@Epic("Стратегия тестирования микросервисов")
+@Feature("Контрактное тестирование — WireMock")
+@Story("Расширенные сценарии контракта")
 class VisitsExtendedContractTest {
 
     private WireMockServer wireMock;
@@ -39,6 +43,7 @@ class VisitsExtendedContractTest {
 
         @ParameterizedTest
         @DisplayName("1.1 Запрос визитов работает для разных ID питомцев")
+        @Description("URL-шаблон /pets/{id}/visits должен работать для любого числового ID — смена URL-паттерна в visits-service без уведомления сломает отображение визитов для всех питомцев")
         @ValueSource(ints = {1, 5, 10, 42, 100})
         void visitsForDifferentPetIds(int petId) {
             wireMock.stubFor(get(urlPathMatching("/pets/[0-9]+/visits"))
@@ -60,6 +65,7 @@ class VisitsExtendedContractTest {
 
         @Test
         @DisplayName("2.1 Визит с полным набором полей")
+        @Description("Ответ с полным набором полей (id, date, description) должен приниматься без ошибок — добавление новых полей в visits-service не должно ломать десериализацию в customers-service")
         void visitWithAllFields() {
             wireMock.stubFor(get(urlPathMatching("/pets/[0-9]+/visits"))
                 .willReturn(aResponse()
@@ -81,6 +87,7 @@ class VisitsExtendedContractTest {
 
         @Test
         @DisplayName("2.2 Пять визитов в ответе — все присутствуют")
+        @Description("При большом количестве визитов все записи должны присутствовать в ответе — усечение или пагинация без уведомления нарушит контракт и скроет часть медицинской истории")
         void fiveVisitsInResponse() {
             StringBuilder items = new StringBuilder("[");
             for (int i = 1; i <= 5; i++) {
@@ -107,6 +114,7 @@ class VisitsExtendedContractTest {
 
         @Test
         @DisplayName("2.3 Content-Type ответа — application/json")
+        @Description("visits-service обязан возвращать Content-Type: application/json — смена на text/plain или другой тип сломает автоматическую десериализацию и приведёт к ошибкам в клиенте")
         void responseContentType_isJson() {
             wireMock.stubFor(get(urlPathMatching("/pets/[0-9]+/visits"))
                 .willReturn(aResponse()

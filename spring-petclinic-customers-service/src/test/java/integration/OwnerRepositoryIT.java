@@ -1,5 +1,9 @@
 package org.springframework.samples.petclinic.customers.integration;
 
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
+import io.qameta.allure.Step;
+import io.qameta.allure.Story;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -10,7 +14,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.springframework.samples.petclinic.customers.model.*;
-import java.util.Date;
+import java.util.Optional;
 import static org.assertj.core.api.Assertions.*;
 
 /**
@@ -19,6 +23,9 @@ import static org.assertj.core.api.Assertions.*;
  *
  * ВАЖНО: переменная TESTCONTAINERS_RYUK_DISABLED=true обязательна в CI/CD.
  */
+@Epic("Стратегия тестирования микросервисов")
+@Feature("Интеграционное тестирование — Testcontainers + PostgreSQL 15")
+@Story("CRUD операции с реальной БД")
 @SpringBootTest
 @Testcontainers
 @ActiveProfiles("test")
@@ -45,7 +52,6 @@ class OwnerRepositoryIT {
     @Autowired
     private OwnerRepository ownerRepository;
 
-    // Вспомогательный метод для создания тестового владельца
     private Owner buildOwner(String firstName, String lastName) {
         Owner o = new Owner();
         o.setFirstName(firstName);
@@ -54,6 +60,29 @@ class OwnerRepositoryIT {
         o.setCity("Уфа");
         o.setTelephone("89001234567");
         return o;
+    }
+
+    // ── @Step-методы для структурирования шагов в Allure-отчёте ──────────────
+
+    @Step("Сохранить владельца через OwnerRepository")
+    private Owner saveOwner(Owner owner) {
+        return ownerRepository.save(owner);
+    }
+
+    @Step("Найти по ID={0} — ожидаем Optional.isPresent()")
+    private Optional<Owner> findOwnerById(Integer id) {
+        return ownerRepository.findById(id);
+    }
+
+    @Step("Удалить владельца по ID={0}")
+    private void deleteOwnerById(Integer id) {
+        ownerRepository.deleteById(id);
+    }
+
+    @Step("Проверить firstName={0}, lastName={1}")
+    private void assertOwnerName(Owner owner, String expectedFirst, String expectedLast) {
+        assertThat(owner.getFirstName()).isEqualTo(expectedFirst);
+        assertThat(owner.getLastName()).isEqualTo(expectedLast);
     }
 
     // ──────────────────────────────────────────────────────
@@ -66,7 +95,7 @@ class OwnerRepositoryIT {
         @Test
         @DisplayName("1.1 Сохранение — ID генерируется автоматически")
         void saveOwnerGeneratesId() {
-            Owner saved = ownerRepository.save(buildOwner("Тест", "Тестов"));
+            Owner saved = saveOwner(buildOwner("Тест", "Тестов"));
             assertThat(saved.getId()).isNotNull();
             assertThat(saved.getId()).isPositive();
         }
@@ -74,12 +103,11 @@ class OwnerRepositoryIT {
         @Test
         @DisplayName("1.2 Сохранение и поиск по ID — все поля совпадают")
         void saveAndFindById_allFieldsMatch() {
-            Owner saved = ownerRepository.save(buildOwner("Иван", "Петров"));
-            var found = ownerRepository.findById(saved.getId());
+            Owner saved = saveOwner(buildOwner("Иван", "Петров"));
+            Optional<Owner> found = findOwnerById(saved.getId());
 
             assertThat(found).isPresent();
-            assertThat(found.get().getFirstName()).isEqualTo("Иван");
-            assertThat(found.get().getLastName()).isEqualTo("Петров");
+            assertOwnerName(found.get(), "Иван", "Петров");
             assertThat(found.get().getAddress()).isEqualTo("Тестовая ул., д. 1");
             assertThat(found.get().getCity()).isEqualTo("Уфа");
             assertThat(found.get().getTelephone()).isEqualTo("89001234567");
@@ -88,29 +116,30 @@ class OwnerRepositoryIT {
         @Test
         @DisplayName("1.3 Поиск по несуществующему ID — пустой Optional")
         void findByMissingId_returnsEmpty() {
-            assertThat(ownerRepository.findById(999999)).isEmpty();
+            Optional<Owner> result = findOwnerById(999999);
+            assertThat(result).isEmpty();
         }
 
         @Test
         @DisplayName("1.4 Удаление — запись больше не находится")
         void deleteOwner_notFoundAfterDeletion() {
-            Owner saved = ownerRepository.save(buildOwner("Удалить", "Меня"));
+            Owner saved = saveOwner(buildOwner("Удалить", "Меня"));
             Integer id = saved.getId();
 
-            ownerRepository.deleteById(id);
+            deleteOwnerById(id);
 
-            assertThat(ownerRepository.findById(id)).isEmpty();
+            assertThat(findOwnerById(id)).isEmpty();
         }
 
         @Test
         @DisplayName("1.5 Обновление — новые данные сохраняются в БД")
         void updateOwner_newDataPersisted() {
-            Owner saved = ownerRepository.save(buildOwner("Старое", "Имя"));
+            Owner saved = saveOwner(buildOwner("Старое", "Имя"));
             saved.setFirstName("Новое");
             saved.setCity("Казань");
-            ownerRepository.save(saved);
+            saveOwner(saved);
 
-            var found = ownerRepository.findById(saved.getId()).get();
+            Owner found = findOwnerById(saved.getId()).get();
             assertThat(found.getFirstName()).isEqualTo("Новое");
             assertThat(found.getCity()).isEqualTo("Казань");
         }
@@ -126,33 +155,33 @@ class OwnerRepositoryIT {
         @Test
         @DisplayName("2.1 Два владельца получают разные ID")
         void twoOwners_getDifferentIds() {
-            Owner o1 = ownerRepository.save(buildOwner("Первый", "Владелец"));
-            Owner o2 = ownerRepository.save(buildOwner("Второй", "Владелец"));
+            Owner o1 = saveOwner(buildOwner("Первый", "Владелец"));
+            Owner o2 = saveOwner(buildOwner("Второй", "Владелец"));
             assertThat(o1.getId()).isNotEqualTo(o2.getId());
         }
 
         @Test
         @DisplayName("2.2 Удаление одного не затрагивает другого")
         void deleteOne_otherRemains() {
-            Owner keep   = ownerRepository.save(buildOwner("Оставить", "Меня"));
-            Owner delete = ownerRepository.save(buildOwner("Удалить",  "Меня"));
+            Owner keep   = saveOwner(buildOwner("Оставить", "Меня"));
+            Owner delete = saveOwner(buildOwner("Удалить",  "Меня"));
 
-            ownerRepository.deleteById(delete.getId());
+            deleteOwnerById(delete.getId());
 
-            assertThat(ownerRepository.findById(keep.getId())).isPresent();
-            assertThat(ownerRepository.findById(delete.getId())).isEmpty();
+            assertThat(findOwnerById(keep.getId())).isPresent();
+            assertThat(findOwnerById(delete.getId())).isEmpty();
         }
 
         @Test
         @DisplayName("2.3 Три владельца сохраняются независимо")
         void threeOwners_savedIndependently() {
-            Owner o1 = ownerRepository.save(buildOwner("Первый",  "А"));
-            Owner o2 = ownerRepository.save(buildOwner("Второй",  "Б"));
-            Owner o3 = ownerRepository.save(buildOwner("Третий",  "В"));
+            Owner o1 = saveOwner(buildOwner("Первый",  "А"));
+            Owner o2 = saveOwner(buildOwner("Второй",  "Б"));
+            Owner o3 = saveOwner(buildOwner("Третий",  "В"));
 
-            assertThat(ownerRepository.findById(o1.getId())).isPresent();
-            assertThat(ownerRepository.findById(o2.getId())).isPresent();
-            assertThat(ownerRepository.findById(o3.getId())).isPresent();
+            assertThat(findOwnerById(o1.getId())).isPresent();
+            assertThat(findOwnerById(o2.getId())).isPresent();
+            assertThat(findOwnerById(o3.getId())).isPresent();
         }
     }
 
@@ -172,9 +201,9 @@ class OwnerRepositoryIT {
             owner.setAddress("пр. Октября, д. 12, кв. 34");
             owner.setCity("Москва");
             owner.setTelephone("74951234567");
-            Owner saved = ownerRepository.save(owner);
+            Owner saved = saveOwner(owner);
 
-            var found = ownerRepository.findById(saved.getId()).get();
+            Owner found = findOwnerById(saved.getId()).get();
             assertThat(found.getAddress()).isEqualTo("пр. Октября, д. 12, кв. 34");
             assertThat(found.getCity()).isEqualTo("Москва");
             assertThat(found.getTelephone()).isEqualTo("74951234567");
@@ -183,27 +212,26 @@ class OwnerRepositoryIT {
         @Test
         @DisplayName("3.2 Кириллические символы в именах сохраняются корректно")
         void cyrillicNames_savedCorrectly() {
-            Owner owner = ownerRepository.save(buildOwner("Гузалия", "Гареева"));
-            var found = ownerRepository.findById(owner.getId()).get();
-            assertThat(found.getFirstName()).isEqualTo("Гузалия");
-            assertThat(found.getLastName()).isEqualTo("Гареева");
+            Owner owner = saveOwner(buildOwner("Гузалия", "Гареева"));
+            Owner found = findOwnerById(owner.getId()).get();
+            assertOwnerName(found, "Гузалия", "Гареева");
         }
 
         @Test
         @DisplayName("3.3 ID сохранённого объекта совпадает с ID найденного")
         void savedId_matchesFoundId() {
-            Owner saved = ownerRepository.save(buildOwner("Проверка", "ID"));
-            var found = ownerRepository.findById(saved.getId()).get();
+            Owner saved = saveOwner(buildOwner("Проверка", "ID"));
+            Owner found = findOwnerById(saved.getId()).get();
             assertThat(found.getId()).isEqualTo(saved.getId());
         }
 
         @Test
         @DisplayName("3.4 Повторное сохранение не создаёт дубликат")
         void resave_doesNotCreateDuplicate() {
-            Owner saved = ownerRepository.save(buildOwner("Дубликат", "Тест"));
+            Owner saved = saveOwner(buildOwner("Дубликат", "Тест"));
             Integer originalId = saved.getId();
             saved.setCity("Новый город");
-            Owner resaved = ownerRepository.save(saved);
+            Owner resaved = saveOwner(saved);
             assertThat(resaved.getId()).isEqualTo(originalId);
         }
 
@@ -213,8 +241,8 @@ class OwnerRepositoryIT {
             String longAddress = "Очень длинное название улицы с номером дома и квартиры 999";
             Owner owner = buildOwner("Тест", "Адреса");
             owner.setAddress(longAddress);
-            Owner saved = ownerRepository.save(owner);
-            assertThat(ownerRepository.findById(saved.getId()).get().getAddress())
+            Owner saved = saveOwner(owner);
+            assertThat(findOwnerById(saved.getId()).get().getAddress())
                 .isEqualTo(longAddress);
         }
     }
