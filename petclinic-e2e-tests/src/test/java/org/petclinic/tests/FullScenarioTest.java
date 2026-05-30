@@ -13,8 +13,8 @@ import static org.hamcrest.Matchers.*;
  * Полный сценарий жизненного цикла: создание владельца → питомец → обновление → проверка.
  * Один тест-метод + @Step методы = полноценный Allure-отчёт с деревом шагов.
  */
-@Epic("Интеграционные сценарии")
-@Feature("Полный жизненный цикл владельца и питомца")
+@Epic("Стратегия тестирования микросервисов")
+@Feature("REST API тестирование — REST Assured")
 @DisplayName("FullScenarioTest — жизненный цикл")
 class FullScenarioTest extends BaseTest {
 

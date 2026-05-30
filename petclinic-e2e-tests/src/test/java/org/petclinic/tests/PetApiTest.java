@@ -7,8 +7,9 @@ import org.petclinic.tests.config.BaseTest;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
-@Epic("Customers Service")
-@Feature("Управление питомцами (Pets API)")
+@Epic("Стратегия тестирования микросервисов")
+@Feature("REST API тестирование — REST Assured")
+@Story("Управление питомцами — CRUD операции через HTTP API")
 @DisplayName("PetApiTest — REST API питомцев")
 class PetApiTest extends BaseTest {
 
@@ -35,6 +36,7 @@ class PetApiTest extends BaseTest {
             }
             """;
 
+    @Step("POST /api/customer/owners — создать владельца и получить ID")
     private int createOwner() {
         return given(spec)
             .body(OWNER_BODY)
@@ -43,6 +45,7 @@ class PetApiTest extends BaseTest {
             .extract().path("id");
     }
 
+    @Step("POST /api/customer/owners/{ownerId}/pets — создать питомца и получить ID")
     private int createPet(int ownerId) {
         return given(spec)
             .body(PET_BODY)

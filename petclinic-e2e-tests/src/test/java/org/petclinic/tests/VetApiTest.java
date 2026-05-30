@@ -12,12 +12,23 @@ import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 
-@Epic("Vets Service")
-@Feature("Управление ветеринарами (Vets API)")
+@Epic("Стратегия тестирования микросервисов")
+@Feature("REST API тестирование — REST Assured")
+@Story("Управление ветеринарами — просмотр справочника специалистов")
 @DisplayName("VetApiTest — REST API ветеринаров")
 class VetApiTest extends BaseTest {
 
     private static final String VETS_PATH = "/api/vet/vets";
+
+    @Step("GET /api/vet/vets — получить список ветеринаров")
+    private Response fetchVets() {
+        return given(spec)
+            .when()
+            .get(VETS_PATH)
+            .then()
+            .statusCode(200)
+            .extract().response();
+    }
 
     @Test
     @Story("Список ветеринаров")
@@ -38,13 +49,7 @@ class VetApiTest extends BaseTest {
     @Description("Список ветеринаров не пуст — данные загружены из data.sql")
     @Severity(SeverityLevel.CRITICAL)
     void getVets_listIsNotEmpty() {
-        Response response = given(spec)
-        .when()
-            .get(VETS_PATH)
-        .then()
-            .statusCode(200)
-            .body("$", not(empty()))
-            .extract().response();
+        Response response = fetchVets();
 
         List<?> vets = response.jsonPath().getList("$");
         assertThat(vets).isNotEmpty();
@@ -55,12 +60,7 @@ class VetApiTest extends BaseTest {
     @Description("Каждый ветеринар содержит поля: firstName, lastName, specialties, nrOfSpecialties")
     @Severity(SeverityLevel.CRITICAL)
     void getVets_eachVetHasRequiredFields() {
-        Response response = given(spec)
-        .when()
-            .get(VETS_PATH)
-        .then()
-            .statusCode(200)
-            .extract().response();
+        Response response = fetchVets();
 
         List<Map<String, Object>> vets = response.jsonPath().getList("$");
         assertThat(vets).isNotEmpty();

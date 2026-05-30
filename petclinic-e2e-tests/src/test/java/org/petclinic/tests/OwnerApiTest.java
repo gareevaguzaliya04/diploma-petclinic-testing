@@ -9,14 +9,14 @@ import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 
-@Epic("Customers Service")
-@Feature("Управление владельцами (Owners API)")
+@Epic("Стратегия тестирования микросервисов")
+@Feature("REST API тестирование — REST Assured")
+@Story("Управление владельцами — полный CRUD через HTTP API")
 @DisplayName("OwnerApiTest — REST API владельцев")
 class OwnerApiTest extends BaseTest {
 
     private static final String OWNERS_PATH = "/api/customer/owners";
 
-    // Тело для создания корректного владельца
     private static final String VALID_OWNER_BODY = """
             {
                 "firstName": "Гузалия",
@@ -27,9 +27,7 @@ class OwnerApiTest extends BaseTest {
             }
             """;
 
-    /**
-     * Вспомогательный метод: создаёт владельца и возвращает его ID.
-     */
+    @Step("POST /api/customer/owners — создать владельца и получить ID")
     private int createOwnerAndGetId() {
         return given(spec)
             .body(VALID_OWNER_BODY)
@@ -139,7 +137,6 @@ class OwnerApiTest extends BaseTest {
     @Description("GET /owners → 200, ответ является непустым массивом")
     @Severity(SeverityLevel.NORMAL)
     void getAllOwners_returns200AndNonNullList() {
-        // Сначала создаём хотя бы одного владельца
         createOwnerAndGetId();
 
         Response response = given(spec)
