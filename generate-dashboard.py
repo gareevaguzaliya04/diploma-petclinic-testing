@@ -229,6 +229,7 @@ def generate_html(unit, integ, contract, e2e,
         job_row('Unit Tests',                               unit)
         + job_row('Integration Tests (Testcontainers + PostgreSQL)', integ)
         + job_row('Contract Tests (WireMock)',              contract)
+        + job_row('E2E Tests (REST Assured)',               e2e)
     )
 
     # ── кнопки-ссылки на отчёты ──

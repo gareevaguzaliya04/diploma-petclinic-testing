@@ -164,17 +164,17 @@ jobs:
       - name: Start services with docker-compose
         run: docker compose up -d config-server discovery-server customers-service visits-service vets-service api-gateway
 
-      - name: Wait for API Gateway to be healthy
+      - name: Wait for API Gateway and service discovery
         run: |
-          for i in $(seq 1 36); do
+          for i in $(seq 1 48); do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/actuator/health || echo "000")
-            if [ "$STATUS" = "200" ]; then echo "UP"; exit 0; fi
+            if [ "$STATUS" = "200" ]; then echo "UP, waiting 40s for Eureka..."; sleep 40; exit 0; fi
             sleep 5
           done
           docker compose logs; exit 1
 
       - name: Run Gatling simulation
-        run: mvn gatling:test -f performance-tests/pom.xml -Dbase.url=http://localhost:8080
+        run: mvn gatling:test -f performance-tests/pom.xml -Dgatling.simulationClass=petclinic.PetClinicSimulation
         continue-on-error: true
 
       - name: Upload Gatling results
@@ -256,25 +256,35 @@ jobs:
         run: |
           mvn test jacoco:report \
             -pl spring-petclinic-customers-service \
-            -Dtest="**/unit/**,**/integration/**,**/contract/**" \
+            -Dtest="**/unit/**,**/integration/**,**/contract/**,**/web/**" \
             -Dsurefire.forkCount=1 \
             --no-transfer-progress
 
       - name: Install Allure CLI
         run: npm install -g allure-commandline@2.25.0
 
+      - name: Collect and flatten Allure results
+        run: |
+          mkdir -p allure-results-merged
+          # Результаты из свежего запуска тестов в этом же job'е
+          find spring-petclinic-customers-service/target/allure-results \
+            -type f 2>/dev/null | xargs -I{} cp {} allure-results-merged/ || true
+          # Результаты из скачанных артефактов (вложенные пути)
+          find allure-results -type f \( -name "*.json" -o -name "*.xml" \) \
+            2>/dev/null | xargs -I{} cp {} allure-results-merged/ || true
+
       - name: Restore Allure history from gh-pages
         run: |
           git fetch origin gh-pages 2>/dev/null || true
-          mkdir -p allure-results/history
+          mkdir -p allure-results-merged/history
           git show origin/gh-pages:allure/history/history.json \
-            > allure-results/history/history.json 2>/dev/null || true
+            > allure-results-merged/history/history.json 2>/dev/null || true
           git show origin/gh-pages:allure/history/history-trend.json \
-            > allure-results/history/history-trend.json 2>/dev/null || true
+            > allure-results-merged/history/history-trend.json 2>/dev/null || true
 
       - name: Generate Allure report
         run: |
-          allure generate allure-results \
+          allure generate allure-results-merged \
             --output site/allure \
             --clean
 
@@ -304,6 +314,7 @@ jobs:
             echo "docs/index.html unchanged, skipping commit"
           else
             git commit -m "ci: update dashboard [skip ci]"
+            git pull --rebase origin ${{ github.ref_name }} || true
             git push origin ${{ github.ref_name }}
           fi
 
