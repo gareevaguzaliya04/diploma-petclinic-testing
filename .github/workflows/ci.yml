@@ -304,25 +304,17 @@ jobs:
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
           GITHUB_REF_NAME:   ${{ github.ref_name }}
 
-      - name: Update docs/index.html in source branch
+      - name: Publish reports to docs/ branch
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          cp site/index.html docs/index.html
-          git add docs/index.html
+          git pull --rebase origin ${{ github.ref_name }} || true
+          # Копируем весь site/ в docs/ (дашборд + Allure + JaCoCo)
+          cp -r site/. docs/
+          git add docs/
           if git diff --cached --quiet; then
-            echo "docs/index.html unchanged, skipping commit"
+            echo "docs/ unchanged, skipping commit"
           else
-            git commit -m "ci: update dashboard [skip ci]"
-            git pull --rebase origin ${{ github.ref_name }} || true
+            git commit -m "ci: update dashboard and reports [skip ci]"
             git push origin ${{ github.ref_name }}
           fi
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: site
-          publish_branch: gh-pages
-          keep_files: false
-          commit_message: "ci: update Allure report and JaCoCo coverage"
