@@ -157,7 +157,7 @@ class ExtendedPetResourceTest {
 
             mvc.perform(post("/owners/1/pets")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"name\":\"Мурзик\",\"typeId\":1,\"birthDate\":\"2020-01-15\"}"))
+                    .content("{\"id\":0,\"name\":\"Мурзик\",\"typeId\":1,\"birthDate\":\"2020-01-15\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Мурзик"));
         }
@@ -171,7 +171,7 @@ class ExtendedPetResourceTest {
 
             mvc.perform(post("/owners/2/pets")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"name\":\"Рекс\",\"typeId\":3}"))
+                    .content("{\"id\":0,\"name\":\"Рекс\",\"typeId\":3}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.type.name").value("dog"));
         }
@@ -183,7 +183,7 @@ class ExtendedPetResourceTest {
 
             mvc.perform(post("/owners/999/pets")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"name\":\"Кот\",\"typeId\":1}"))
+                    .content("{\"id\":0,\"name\":\"Кот\",\"typeId\":1}"))
                 .andExpect(status().isNotFound());
         }
 
@@ -192,7 +192,7 @@ class ExtendedPetResourceTest {
         void ownerIdZero_returns400() throws Exception {
             mvc.perform(post("/owners/0/pets")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"name\":\"Кот\",\"typeId\":1}"))
+                    .content("{\"id\":0,\"name\":\"Кот\",\"typeId\":1}"))
                 .andExpect(status().isBadRequest());
         }
 
@@ -205,7 +205,7 @@ class ExtendedPetResourceTest {
 
             mvc.perform(post("/owners/1/pets")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"name\":\"Барсик\",\"typeId\":1}"))
+                    .content("{\"id\":0,\"name\":\"Барсик\",\"typeId\":1}"))
                 .andExpect(status().isCreated());
 
             verify(petRepository).save(any(Pet.class));
@@ -220,7 +220,7 @@ class ExtendedPetResourceTest {
 
             mvc.perform(post("/owners/1/pets")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"name\":\"Пушок\",\"typeId\":0}"))
+                    .content("{\"id\":0,\"name\":\"Пушок\",\"typeId\":0}"))
                 .andExpect(status().isCreated());
         }
     }
