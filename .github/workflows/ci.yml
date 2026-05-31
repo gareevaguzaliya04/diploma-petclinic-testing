@@ -124,7 +124,7 @@ jobs:
           exit 1
 
       - name: Run E2E tests
-        run: mvn test -pl petclinic-e2e-tests -Dbase.url=http://localhost:8080
+        run: mvn test -f petclinic-e2e-tests/pom.xml -Dbase.url=http://localhost:8080
 
       - name: Upload E2E test results
         if: always()
@@ -169,7 +169,7 @@ jobs:
           docker compose logs; exit 1
 
       - name: Run Gatling simulation
-        run: mvn gatling:test -pl performance-tests -Dbase.url=http://localhost:8080
+        run: mvn gatling:test -f performance-tests/pom.xml -Dbase.url=http://localhost:8080
         continue-on-error: true
 
       - name: Upload Gatling results
