@@ -158,12 +158,11 @@ class VetModelTest {
         }
 
         @Test
-        @DisplayName("3.2 ID специализации сохраняется")
-        @Description("ID специализации используется для связи с ветеринаром через ManyToMany — должен корректно сохраняться")
-        void idSetAndGet() {
+        @DisplayName("3.2 Новая специализация имеет null ID до сохранения в БД")
+        @Description("ID специализации генерируется JPA автоматически — до persist значение должно быть null, иначе JPA попытается сделать UPDATE вместо INSERT")
+        void newSpecialtyHasNullId() {
             Specialty s = new Specialty();
-            s.setId(3);
-            assertThat(s.getId()).isEqualTo(3);
+            assertThat(s.getId()).isNull();
         }
 
         @Test
