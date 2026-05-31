@@ -57,8 +57,8 @@ class OwnerResource {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Owner createOwner(@Valid @RequestBody OwnerRequest ownerRequest) {
-<span class="nc" id="L60">        Owner owner = ownerEntityMapper.map(new Owner(), ownerRequest);</span>
-<span class="nc" id="L61">        return ownerRepository.save(owner);</span>
+<span class="fc" id="L60">        Owner owner = ownerEntityMapper.map(new Owner(), ownerRequest);</span>
+<span class="fc" id="L61">        return ownerRepository.save(owner);</span>
     }
 
     /**
@@ -66,7 +66,7 @@ class OwnerResource {
      */
     @GetMapping(value = &quot;/{ownerId}&quot;)
     public Optional&lt;Owner&gt; findOwner(@PathVariable(&quot;ownerId&quot;) @Min(1) int ownerId) {
-<span class="nc" id="L69">        return ownerRepository.findById(ownerId);</span>
+<span class="fc" id="L69">        return ownerRepository.findById(ownerId);</span>
     }
 
     /**
@@ -74,7 +74,7 @@ class OwnerResource {
      */
     @GetMapping
     public List&lt;Owner&gt; findAll() {
-<span class="nc" id="L77">        return ownerRepository.findAll();</span>
+<span class="fc" id="L77">        return ownerRepository.findAll();</span>
     }
 
     /**
@@ -83,11 +83,11 @@ class OwnerResource {
     @PutMapping(value = &quot;/{ownerId}&quot;)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateOwner(@PathVariable(&quot;ownerId&quot;) @Min(1) int ownerId, @Valid @RequestBody OwnerRequest ownerRequest) {
-<span class="nc" id="L86">        final Owner ownerModel = ownerRepository.findById(ownerId).orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Owner &quot; + ownerId + &quot; not found&quot;));</span>
+<span class="fc" id="L86">        final Owner ownerModel = ownerRepository.findById(ownerId).orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Owner &quot; + ownerId + &quot; not found&quot;));</span>
 
-<span class="nc" id="L88">        ownerEntityMapper.map(ownerModel, ownerRequest);</span>
-<span class="nc" id="L89">        log.info(&quot;Saving owner {}&quot;, ownerModel);</span>
-<span class="nc" id="L90">        ownerRepository.save(ownerModel);</span>
-<span class="nc" id="L91">    }</span>
+<span class="fc" id="L88">        ownerEntityMapper.map(ownerModel, ownerRequest);</span>
+<span class="fc" id="L89">        log.info(&quot;Saving owner {}&quot;, ownerModel);</span>
+<span class="fc" id="L90">        ownerRepository.save(ownerModel);</span>
+<span class="fc" id="L91">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

@@ -56,14 +56,14 @@ import java.util.Objects;
 
     @Override
     public String toString() {
-<span class="nc" id="L59">        return new ToStringCreator(this)</span>
-<span class="nc" id="L60">            .append(&quot;id&quot;, this.getId())</span>
-<span class="nc" id="L61">            .append(&quot;name&quot;, this.getName())</span>
-<span class="nc" id="L62">            .append(&quot;birthDate&quot;, this.getBirthDate())</span>
-<span class="nc" id="L63">            .append(&quot;type&quot;, this.getType().getName())</span>
-<span class="nc" id="L64">            .append(&quot;ownerFirstname&quot;, this.getOwner().getFirstName())</span>
-<span class="nc" id="L65">            .append(&quot;ownerLastname&quot;, this.getOwner().getLastName())</span>
-<span class="nc" id="L66">            .toString();</span>
+<span class="fc" id="L59">        return new ToStringCreator(this)</span>
+<span class="fc" id="L60">            .append(&quot;id&quot;, this.getId())</span>
+<span class="fc" id="L61">            .append(&quot;name&quot;, this.getName())</span>
+<span class="fc" id="L62">            .append(&quot;birthDate&quot;, this.getBirthDate())</span>
+<span class="fc" id="L63">            .append(&quot;type&quot;, this.getType().getName())</span>
+<span class="fc" id="L64">            .append(&quot;ownerFirstname&quot;, this.getOwner().getFirstName())</span>
+<span class="fc" id="L65">            .append(&quot;ownerLastname&quot;, this.getOwner().getLastName())</span>
+<span class="fc" id="L66">            .toString();</span>
     }
 
     public Integer getId() {
@@ -83,12 +83,12 @@ import java.util.Objects;
     }
 
     public Owner getOwner() {
-<span class="nc" id="L86">        return this.owner;</span>
+<span class="fc" id="L86">        return this.owner;</span>
     }
 
     public void setId(Integer id) {
-<span class="nc" id="L90">        this.id = id;</span>
-<span class="nc" id="L91">    }</span>
+<span class="fc" id="L90">        this.id = id;</span>
+<span class="fc" id="L91">    }</span>
 
     public void setName(String name) {
 <span class="fc" id="L94">        this.name = name;</span>
