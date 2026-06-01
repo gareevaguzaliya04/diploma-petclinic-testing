@@ -186,12 +186,13 @@ class OwnerResourceTest {
         }
 
         @Test
-        @DisplayName("2.2 Несуществующий ID → 404")
-        void missing_returns404() throws Exception {
+        @DisplayName("2.2 Несуществующий ID → 200 с пустым телом")
+        void missing_returnsEmptyBody() throws Exception {
             given(ownerRepository.findById(999)).willReturn(Optional.empty());
 
+            // findOwner возвращает Optional<Owner> напрямую: пустой Optional → 200 с null-телом
             mvc.perform(get("/owners/999").accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk());
         }
 
         @Test

@@ -9,28 +9,28 @@ import static io.gatling.javaapi.http.HttpDsl.*;
 public class PetClinicSimulation extends Simulation {
 
     HttpProtocolBuilder httpProtocol = http
-        .baseUrl("http://localhost:8080")
+        .baseUrl(System.getProperty("base.url", "http://localhost:8080"))
         .acceptHeader("application/json")
         .contentTypeHeader("application/json");
 
-    // Сценарий A: чтение данных
-    ScenarioBuilder readScenario = scenario("Чтение данных")
-        .exec(http("Получить владельцев")
+    // РЎС†РµРЅР°СЂРёР№ A: С‡С‚РµРЅРёРµ РґР°РЅРЅС‹С…
+    ScenarioBuilder readScenario = scenario("Р§С‚РµРЅРёРµ РґР°РЅРЅС‹С…")
+        .exec(http("РџРѕР»СѓС‡РёС‚СЊ РІР»Р°РґРµР»СЊС†РµРІ")
             .get("/api/customer/owners")
             .check(status().is(200)))
         .pause(1)
-        .exec(http("Получить ветеринаров")
+        .exec(http("РџРѕР»СѓС‡РёС‚СЊ РІРµС‚РµСЂРёРЅР°СЂРѕРІ")
             .get("/api/vet/vets")
             .check(status().is(200)))
         .pause(1);
 
-    // Сценарий B: создание данных
-    ScenarioBuilder writeScenario = scenario("Создание данных")
-        .exec(http("Создать владельца")
+    // РЎС†РµРЅР°СЂРёР№ B: СЃРѕР·РґР°РЅРёРµ РґР°РЅРЅС‹С…
+    ScenarioBuilder writeScenario = scenario("РЎРѕР·РґР°РЅРёРµ РґР°РЅРЅС‹С…")
+        .exec(http("РЎРѕР·РґР°С‚СЊ РІР»Р°РґРµР»СЊС†Р°")
             .post("/api/customer/owners")
             .body(StringBody(
-                "{\"firstName\":\"Нагрузка\",\"lastName\":\"Тест\"," +
-                "\"address\":\"ул. Тестовая\",\"city\":\"Казань\"," +
+                "{\"firstName\":\"РќР°РіСЂСѓР·РєР°\",\"lastName\":\"РўРµСЃС‚\"," +
+                "\"address\":\"СѓР». РўРµСЃС‚РѕРІР°СЏ\",\"city\":\"РЈС„Р°\"," +
                 "\"telephone\":\"89001234567\"}"
             ))
             .check(status().is(201)))
@@ -38,11 +38,11 @@ public class PetClinicSimulation extends Simulation {
 
     {
         setUp(
-            // Сценарий A: плавный рост до 20 пользователей за 30 секунд
+            // РЎС†РµРЅР°СЂРёР№ A: РїР»Р°РІРЅС‹Р№ СЂРѕСЃС‚ РґРѕ 20 РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№ Р·Р° 30 СЃРµРєСѓРЅРґ
             readScenario.injectOpen(
                 rampUsers(20).during(30)
             ),
-            // Сценарий B: 5 пользователей постоянно в течение 30 секунд
+            // РЎС†РµРЅР°СЂРёР№ B: 5 РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№ СЃРѕР·РґР°СЋС‚ РґР°РЅРЅС‹Рµ РїРѕСЃС‚РѕСЏРЅРЅРѕ РІ С‚РµС‡РµРЅРёРµ 30 СЃРµРєСѓРЅРґ
             writeScenario.injectOpen(
                 constantUsersPerSec(5).during(30)
             )
