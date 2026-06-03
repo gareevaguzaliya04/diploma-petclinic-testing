@@ -155,12 +155,12 @@ def _level_row(label, count, max_count, bg, color_class):
       </div>'''
 
 
-def generate_html(unit, integ, contract, e2e,
+def generate_html(unit, integ, contract, controller, e2e,
                   jacoco_pct, gatling,
                   run_num, branch, now):
 
-    total        = unit[0] + integ[0] + contract[0] + e2e[0]
-    total_failed = unit[2] + integ[2] + contract[2] + e2e[2]
+    total        = unit[0] + integ[0] + contract[0] + controller[0] + e2e[0]
+    total_failed = unit[2] + integ[2] + contract[2] + controller[2] + e2e[2]
 
     # ── шапка ──
     badge_text  = 'ALL TESTS PASSING' if total_failed == 0 else f'{total_failed} FAILED'
@@ -196,12 +196,13 @@ def generate_html(unit, integ, contract, e2e,
         g_bar_txt = 'данные отсутствуют'
 
     # ── пирамида ──
-    max_c = max(unit[0], integ[0], contract[0], e2e[0], 1)
+    max_c = max(unit[0], integ[0], contract[0], controller[0], e2e[0], 1)
     pyramid = (
-        _level_row('Unit (JUnit 5 + Mockito)',        unit[0],     max_c, '#238636', 'green')
-        + _level_row('Интеграционные (Testcontainers)', integ[0],   max_c, '#1f6feb', 'blue')
-        + _level_row('Контрактные (WireMock)',          contract[0], max_c, '#9e6a03', 'yellow')
-        + _level_row('E2E (HttpClient / REST Assured)', e2e[0],      max_c, '#6e40c9', 'purple')
+        _level_row('Unit (JUnit 5 + Mockito)',              unit[0],        max_c, '#238636', 'green')
+        + _level_row('Интеграционные (Testcontainers)',       integ[0],      max_c, '#1f6feb', 'blue')
+        + _level_row('Контрактные (WireMock)',               contract[0],   max_c, '#9e6a03', 'yellow')
+        + _level_row('Контроллерные (MockMvc / WebFlux)',    controller[0], max_c, '#0d7377', 'green')
+        + _level_row('E2E (HttpClient / REST Assured)',      e2e[0],        max_c, '#6e40c9', 'purple')
         + f'''
       <div class="level">
         <div class="level-label">Нагрузочные (Gatling)</div>
@@ -226,10 +227,11 @@ def generate_html(unit, integ, contract, e2e,
       </div>'''
 
     jobs = (
-        job_row('Unit Tests',                               unit)
+        job_row('Unit Tests',                                        unit)
         + job_row('Integration Tests (Testcontainers + PostgreSQL)', integ)
-        + job_row('Contract Tests (WireMock)',              contract)
-        + job_row('E2E Tests (REST Assured)',               e2e)
+        + job_row('Contract Tests (WireMock)',                       contract)
+        + job_row('Controller Tests (MockMvc / WebFlux)',            controller)
+        + job_row('E2E Tests (REST Assured)',                        e2e)
     )
 
     # ── кнопки-ссылки на отчёты ──
@@ -405,10 +407,11 @@ if __name__ == '__main__':
     run_num, branch, now = ci_meta()
 
     # Surefire XMLs лежат в скачанных артефактах
-    unit     = parse_surefire(['allure-results/unit/**/surefire-reports/TEST-*.xml'])
-    integ    = parse_surefire(['allure-results/integration/**/surefire-reports/TEST-*.xml'])
-    contract = parse_surefire(['allure-results/contract/**/surefire-reports/TEST-*.xml'])
-    e2e      = parse_surefire(['allure-results/e2e/**/surefire-reports/TEST-*.xml'])
+    unit       = parse_surefire(['allure-results/unit/**/surefire-reports/TEST-*.xml'])
+    integ      = parse_surefire(['allure-results/integration/**/surefire-reports/TEST-*.xml'])
+    contract   = parse_surefire(['allure-results/contract/**/surefire-reports/TEST-*.xml'])
+    controller = parse_surefire(['allure-results/controller/**/surefire-reports/TEST-*.xml'])
+    e2e        = parse_surefire(['allure-results/e2e/**/surefire-reports/TEST-*.xml'])
 
     # JaCoCo XML генерируется в том же job'е перед вызовом скрипта
     jacoco_pct = parse_jacoco(
@@ -419,7 +422,7 @@ if __name__ == '__main__':
     gatling = parse_gatling('gatling-results/**/simulation.log')
 
     html = generate_html(
-        unit, integ, contract, e2e,
+        unit, integ, contract, controller, e2e,
         jacoco_pct, gatling,
         run_num, branch, now,
     )
