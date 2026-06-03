@@ -1,5 +1,6 @@
 package org.springframework.samples.petclinic.api.boundary.web;
 
+import io.qameta.allure.*;
 import org.junit.jupiter.api.*;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+@Epic("Стратегия тестирования микросервисов")
+@Feature("Контроллерное тестирование — api-gateway")
+@Story("Агрегация данных и устойчивость при отказе сервисов")
 @WebFluxTest(controllers = ApiGatewayController.class)
 @Import({ReactiveResilience4JAutoConfiguration.class, CircuitBreakerConfiguration.class})
 class ExtendedApiGatewayControllerTest {
@@ -42,7 +46,10 @@ class ExtendedApiGatewayControllerTest {
     class OwnerWithNoPets {
 
         @Test
-        @DisplayName("1.1 Владелец без питомцев → 200, pets пустой список")
+        @DisplayName("1.1 Профиль владельца без питомцев возвращается корректно")
+        @Description("Если у владельца ещё нет питомцев, поле pets должно быть пустым массивом. " +
+            "Новый клиент клиники должен иметь возможность создать профиль без ошибок.")
+        @Severity(SeverityLevel.BLOCKER)
         void noPets_returnsEmptyPetsList() {
             OwnerDetails owner = OwnerDetails.OwnerDetailsBuilder.anOwnerDetails()
                 .id(1)
@@ -64,7 +71,10 @@ class ExtendedApiGatewayControllerTest {
         }
 
         @Test
-        @DisplayName("1.2 Владелец без питомцев — firstName и lastName в ответе")
+        @DisplayName("1.2 Имя и фамилия владельца присутствуют в ответе")
+        @Description("Личные данные владельца должны передаваться через gateway без потерь. " +
+            "Шлюз агрегирует данные из customers-service — важно, что ничего не теряется.")
+        @Severity(SeverityLevel.CRITICAL)
         void noPets_ownerFieldsPresent() {
             OwnerDetails owner = OwnerDetails.OwnerDetailsBuilder.anOwnerDetails()
                 .id(2)
@@ -97,7 +107,10 @@ class ExtendedApiGatewayControllerTest {
     class VisitDistribution {
 
         @Test
-        @DisplayName("2.1 Два питомца — визиты попадают к правильному питомцу")
+        @DisplayName("2.1 Визиты распределяются между питомцами правильно")
+        @Description("При двух питомцах визиты каждого должны попасть именно к нему, " +
+            "а не перемешаться. Шлюз объединяет данные из двух сервисов — это ключевой сценарий агрегации.")
+        @Severity(SeverityLevel.BLOCKER)
         void twoPets_visitsAssignedCorrectly() {
             PetDetails cat = PetDetails.PetDetailsBuilder.aPetDetails()
                 .id(10).name("Мурзик").visits(new ArrayList<>()).build();
@@ -176,7 +189,10 @@ class ExtendedApiGatewayControllerTest {
     class CircuitBreakerScenarios {
 
         @Test
-        @DisplayName("3.1 visits-service недоступен → CB срабатывает, visits пустые")
+        @DisplayName("3.1 При недоступности visits-service система работает в ограниченном режиме")
+        @Description("Если visits-service упал, Circuit Breaker перехватывает ошибку и возвращает " +
+            "профиль владельца с пустым списком визитов. Пользователь видит данные, а не ошибку 500.")
+        @Severity(SeverityLevel.BLOCKER)
         void visitsServiceDown_circuitBreaker_emptyVisits() {
             PetDetails pet = PetDetails.PetDetailsBuilder.aPetDetails()
                 .id(10).name("Гарфилд").visits(new ArrayList<>()).build();
@@ -218,7 +234,10 @@ class ExtendedApiGatewayControllerTest {
         }
 
         @Test
-        @DisplayName("3.3 Оба сервиса работают → 200, данные корректны")
+        @DisplayName("3.3 При нормальной работе всех сервисов данные возвращаются полностью")
+        @Description("Штатный сценарий: customers-service и visits-service доступны. " +
+            "Шлюз корректно объединяет ответы и возвращает полный профиль с историей визитов.")
+        @Severity(SeverityLevel.BLOCKER)
         void bothServicesAvailable_200WithData() {
             PetDetails pet = PetDetails.PetDetailsBuilder.aPetDetails()
                 .id(30).name("Барсик").visits(new ArrayList<>()).build();
