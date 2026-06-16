@@ -9,7 +9,7 @@
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0d1117; color: #e6edf3; }
   .header { background: #161b22; border-bottom: 1px solid #30363d; padding: 20px 40px; display: flex; align-items: center; gap: 16px; }
   .header h1 { font-size: 20px; font-weight: 600; }
-  .header .badge { background: #da3633; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .header .badge { background: #238636; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
   .container { max-width: 1100px; margin: 0 auto; padding: 32px 40px; }
   .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
   .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px; }
@@ -49,9 +49,9 @@
 </head>
 <body>
 <div class="header">
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3fb950" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
   <h1>PetClinic Microservices — Test Dashboard</h1>
-  <span class="badge">1 FAILED</span>
+  <span class="badge">ALL TESTS PASSING</span>
 </div>
 <div class="container">
 
@@ -77,8 +77,8 @@
   <div class="grid">
     <div class="card">
       <div class="label">Всего тестов</div>
-      <div class="value green">124</div>
-      <div class="sub">1 упало ✗</div>
+      <div class="value green">286</div>
+      <div class="sub">Все прошли ✓</div>
     </div>
     <div class="card">
       <div class="label">Покрытие кода</div>
@@ -92,7 +92,7 @@
     </div>
     <div class="card">
       <div class="label">Gatling P95</div>
-      <div class="value purple">76мс</div>
+      <div class="value purple">80мс</div>
       <div class="sub">190 запросов, 0.0% ошибок</div>
     </div>
   </div>
@@ -108,35 +108,42 @@
       <div class="level">
         <div class="level-label">Unit (JUnit 5 + Mockito)</div>
         <div class="level-bar-wrap">
-          <div class="level-bar" style="width:78%;background:#238636">62 тестов</div>
+          <div class="level-bar" style="width:30%;background:#238636">62 тестов</div>
         </div>
         <div class="level-count green">62</div>
       </div>
       <div class="level">
         <div class="level-label">Интеграционные (Testcontainers)</div>
         <div class="level-bar-wrap">
-          <div class="level-bar" style="width:33%;background:#1f6feb">26 тестов</div>
+          <div class="level-bar" style="width:13%;background:#1f6feb">26 тестов</div>
         </div>
         <div class="level-count blue">26</div>
       </div>
       <div class="level">
         <div class="level-label">Контрактные (WireMock)</div>
         <div class="level-bar-wrap">
-          <div class="level-bar" style="width:23%;background:#9e6a03">18 тестов</div>
+          <div class="level-bar" style="width:9%;background:#9e6a03">18 тестов</div>
         </div>
         <div class="level-count yellow">18</div>
       </div>
       <div class="level">
+        <div class="level-label">Контроллерные (MockMvc / WebFlux)</div>
+        <div class="level-bar-wrap">
+          <div class="level-bar" style="width:78%;background:#0d7377">162 тестов</div>
+        </div>
+        <div class="level-count green">162</div>
+      </div>
+      <div class="level">
         <div class="level-label">E2E (HttpClient / REST Assured)</div>
         <div class="level-bar-wrap">
-          <div class="level-bar" style="width:23%;background:#6e40c9">18 тестов</div>
+          <div class="level-bar" style="width:9%;background:#6e40c9">18 тестов</div>
         </div>
         <div class="level-count purple">18</div>
       </div>
       <div class="level">
         <div class="level-label">Нагрузочные (Gatling)</div>
         <div class="level-bar-wrap">
-          <div class="level-bar" style="width:15%;background:#da3633">190 запросов · P95 76мс</div>
+          <div class="level-bar" style="width:15%;background:#da3633">190 запросов · P95 80мс</div>
         </div>
         <div class="level-count" style="color:#f85149">OK</div>
       </div>
@@ -170,10 +177,16 @@
         <div class="job-status pass">PASSED</div>
       </div>
       <div class="job">
-        <div class="job-icon fail">✗</div>
+        <div class="job-icon pass">✓</div>
+        <div class="job-name">Controller Tests (MockMvc / WebFlux)</div>
+        <div class="job-time">162 тестов</div>
+        <div class="job-status pass">PASSED</div>
+      </div>
+      <div class="job">
+        <div class="job-icon pass">✓</div>
         <div class="job-name">E2E Tests (REST Assured)</div>
         <div class="job-time">18 тестов</div>
-        <div class="job-status pass">FAILED</div>
+        <div class="job-status pass">PASSED</div>
       </div>
     </div>
   </div>
@@ -188,7 +201,7 @@
     <div class="gatling">
       <div class="metric"><div class="m-value">190</div><div class="m-label">Всего запросов</div></div>
       <div class="metric"><div class="m-value" style="color:#3fb950">0.0%</div><div class="m-label">Процент ошибок</div></div>
-      <div class="metric"><div class="m-value">76мс</div><div class="m-label">P95 время ответа</div></div>
+      <div class="metric"><div class="m-value">80мс</div><div class="m-label">P95 время ответа</div></div>
       <div class="metric"><div class="m-value">30с</div><div class="m-label">Длительность теста</div></div>
       <div class="metric"><div class="m-value">~6.3</div><div class="m-label">Запросов в секунду</div></div>
       <div class="metric"><div class="m-value"><span style="color:#3fb950">OK</span></div><div class="m-label">Статус</div></div>
@@ -215,7 +228,7 @@
 <div class="footer">
   Дипломная работа — «Внедрение эффективной стратегии тестирования в проектах с микросервисной архитектурой» • Гареева Гузалия • 2026
   <br>
-  Последнее обновление: 01.06.2026 00:01 UTC · Запуск #37 · ветка 1
+  Последнее обновление: 16.06.2026 01:21 UTC · Запуск #42 · ветка 1
 </div>
 </body>
 </html>

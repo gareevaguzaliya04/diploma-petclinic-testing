@@ -1,5 +1,6 @@
 package org.springframework.samples.petclinic.visits.web;
 
+import io.qameta.allure.*;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -18,6 +19,9 @@ import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@Epic("Стратегия тестирования микросервисов")
+@Feature("Контроллерное тестирование — visits-service")
+@Story("REST API для управления визитами питомцев")
 @WebMvcTest(VisitResource.class)
 @ActiveProfiles("test")
 class ExtendedVisitResourceTest {
@@ -45,7 +49,10 @@ class ExtendedVisitResourceTest {
     class CreateVisit {
 
         @Test
-        @DisplayName("1.1 Валидный запрос → 201 Created с телом визита")
+        @DisplayName("1.1 Корректная запись визита возвращает 201 с данными")
+        @Description("Основной сценарий: врач записывает питомца на приём. " +
+            "Сервис должен принять данные, сохранить и вернуть статус 201 с объектом визита.")
+        @Severity(SeverityLevel.BLOCKER)
         void valid_returns201() throws Exception {
             given(visitRepository.save(any(Visit.class))).willAnswer(inv -> inv.getArgument(0));
 
@@ -58,7 +65,10 @@ class ExtendedVisitResourceTest {
         }
 
         @Test
-        @DisplayName("1.2 petId из URL попадает в тело визита")
+        @DisplayName("1.2 Идентификатор питомца из URL сохраняется в визите")
+        @Description("ID питомца передаётся в URL, а не в теле запроса. " +
+            "Сервис должен правильно связать визит с питомцем, используя именно этот ID.")
+        @Severity(SeverityLevel.CRITICAL)
         void petIdFromPath_writtenToBody() throws Exception {
             given(visitRepository.save(any(Visit.class))).willAnswer(inv -> inv.getArgument(0));
 
@@ -70,7 +80,10 @@ class ExtendedVisitResourceTest {
         }
 
         @Test
-        @DisplayName("1.3 Визит без описания — сохраняется (описание необязательно)")
+        @DisplayName("1.3 Визит сохраняется даже без описания")
+        @Description("Описание визита — необязательное поле. Врач может создать запись " +
+            "и добавить описание позже. Отсутствие поля не должно вызывать ошибку.")
+        @Severity(SeverityLevel.NORMAL)
         void emptyDescription_savedSuccessfully() throws Exception {
             given(visitRepository.save(any(Visit.class))).willAnswer(inv -> inv.getArgument(0));
 
@@ -82,7 +95,10 @@ class ExtendedVisitResourceTest {
         }
 
         @Test
-        @DisplayName("1.4 petId = 0 нарушает @Min(1) → 400 Bad Request")
+        @DisplayName("1.4 Нулевой или отрицательный ID питомца отклоняется")
+        @Description("ID питомца должен быть положительным числом. " +
+            "Запрос с ID = 0 должен отклоняться на уровне валидации со статусом 400.")
+        @Severity(SeverityLevel.NORMAL)
         void petIdZero_returns400() throws Exception {
             mvc.perform(post("/owners/1/pets/0/visits")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -91,7 +107,10 @@ class ExtendedVisitResourceTest {
         }
 
         @Test
-        @DisplayName("1.5 Дата в ответе присутствует (заполняется по умолчанию)")
+        @DisplayName("1.5 Дата визита проставляется автоматически")
+        @Description("При создании визита дата заполняется текущим временем автоматически — " +
+            "врач не должен её вводить. Поле date не должно быть пустым в ответе.")
+        @Severity(SeverityLevel.NORMAL)
         void dateNotNull_inResponse() throws Exception {
             given(visitRepository.save(any(Visit.class))).willAnswer(inv -> inv.getArgument(0));
 
@@ -103,7 +122,10 @@ class ExtendedVisitResourceTest {
         }
 
         @Test
-        @DisplayName("1.6 Длинное описание (до 8192 символов) принимается")
+        @DisplayName("1.6 Длинное медицинское описание принимается без усечения")
+        @Description("Врач может написать подробное описание состояния животного. " +
+            "Поле description поддерживает до 8192 символов — это нужно для полноценных медицинских записей.")
+        @Severity(SeverityLevel.NORMAL)
         void longDescription_accepted() throws Exception {
             given(visitRepository.save(any(Visit.class))).willAnswer(inv -> inv.getArgument(0));
             String longDesc = "А".repeat(500);
@@ -123,7 +145,10 @@ class ExtendedVisitResourceTest {
     class GetVisitsByPetId {
 
         @Test
-        @DisplayName("2.1 Нет визитов → 200 с пустым списком")
+        @DisplayName("2.1 Питомец без визитов возвращает пустой список")
+        @Description("Новый питомец без истории болезней должен давать пустой массив, " +
+            "а не ошибку. Пустая история — нормальное состояние.")
+        @Severity(SeverityLevel.NORMAL)
         void noVisits_returnsEmptyList() throws Exception {
             given(visitRepository.findByPetId(10)).willReturn(List.of());
 
@@ -133,7 +158,10 @@ class ExtendedVisitResourceTest {
         }
 
         @Test
-        @DisplayName("2.2 Один визит → список из одного элемента")
+        @DisplayName("2.2 История болезни из одного визита возвращается корректно")
+        @Description("Проверяем, что ID, описание и привязка к питомцу передаются " +
+            "без искажений — это данные медицинской истории питомца.")
+        @Severity(SeverityLevel.BLOCKER)
         void oneVisit_singleElement() throws Exception {
             given(visitRepository.findByPetId(5))
                 .willReturn(List.of(buildVisit(1, 5, "Первый визит")));

@@ -1,1 +1,1 @@
-{"total":125,"items":[{"uid":"9598ccc04e3e76ea4b799b679786c505","name":"Стратегия тестирования микросервисов","statistic":{"failed":1,"broken":0,"skipped":0,"passed":0,"unknown":0,"total":1}}]}
+{"total":287,"items":[{"uid":"9598ccc04e3e76ea4b799b679786c505","name":"Стратегия тестирования микросервисов","statistic":{"failed":0,"broken":0,"skipped":0,"passed":1,"unknown":0,"total":1}}]}
