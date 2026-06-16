@@ -27,7 +27,6 @@ import org.springframework.samples.petclinic.customers.model.OwnerRepository;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * @author Juergen Hoeller
@@ -41,15 +40,15 @@ import java.util.Optional;
 @Timed(&quot;petclinic.owner&quot;)
 class OwnerResource {
 
-<span class="fc" id="L44">    private static final Logger log = LoggerFactory.getLogger(OwnerResource.class);</span>
+<span class="fc" id="L43">    private static final Logger log = LoggerFactory.getLogger(OwnerResource.class);</span>
 
     private final OwnerRepository ownerRepository;
     private final OwnerEntityMapper ownerEntityMapper;
 
-<span class="fc" id="L49">    OwnerResource(OwnerRepository ownerRepository, OwnerEntityMapper ownerEntityMapper) {</span>
-<span class="fc" id="L50">        this.ownerRepository = ownerRepository;</span>
-<span class="fc" id="L51">        this.ownerEntityMapper = ownerEntityMapper;</span>
-<span class="fc" id="L52">    }</span>
+<span class="fc" id="L48">    OwnerResource(OwnerRepository ownerRepository, OwnerEntityMapper ownerEntityMapper) {</span>
+<span class="fc" id="L49">        this.ownerRepository = ownerRepository;</span>
+<span class="fc" id="L50">        this.ownerEntityMapper = ownerEntityMapper;</span>
+<span class="fc" id="L51">    }</span>
 
     /**
      * Create Owner
@@ -57,16 +56,17 @@ class OwnerResource {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Owner createOwner(@Valid @RequestBody OwnerRequest ownerRequest) {
-<span class="fc" id="L60">        Owner owner = ownerEntityMapper.map(new Owner(), ownerRequest);</span>
-<span class="fc" id="L61">        return ownerRepository.save(owner);</span>
+<span class="fc" id="L59">        Owner owner = ownerEntityMapper.map(new Owner(), ownerRequest);</span>
+<span class="fc" id="L60">        return ownerRepository.save(owner);</span>
     }
 
     /**
      * Read single Owner
      */
     @GetMapping(value = &quot;/{ownerId}&quot;)
-    public Optional&lt;Owner&gt; findOwner(@PathVariable(&quot;ownerId&quot;) @Min(1) int ownerId) {
-<span class="fc" id="L69">        return ownerRepository.findById(ownerId);</span>
+    public Owner findOwner(@PathVariable(&quot;ownerId&quot;) @Min(1) int ownerId) {
+<span class="fc" id="L68">        return ownerRepository.findById(ownerId)</span>
+<span class="fc" id="L69">            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Owner &quot; + ownerId + &quot; not found&quot;));</span>
     }
 
     /**
