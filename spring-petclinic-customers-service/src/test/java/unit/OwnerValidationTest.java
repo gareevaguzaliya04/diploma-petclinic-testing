@@ -45,7 +45,7 @@ class OwnerValidationTest {
         void singleCharFirstName() {
             Owner owner = new Owner();
             owner.setFirstName("А");
-            assertThat(owner.getFirstName()).isEqualTo("А");
+            assertThat(owner.getFirstName()).isEqualTo("Р");
         }
     }
 
